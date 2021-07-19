@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Jogo - WebSockets</title>
+        <meta charset="utf-8">
+        <!--<link href="static/style.css" rel="stylesheet">-->
+        <style>
+            body {
+                background-color: rgb(44, 44, 44);
+                /*background-color: rgb(255, 255, 255);*/
+            }
+
+            h2 {
+                font-family: sans-serif;
+                color: #ffffff;
+                text-align: center;
+                background-color: black;
+                border-radius: 5px;
+                margin-left: 200px;
+                margin-right: 200px;
+                border: 1px solid #636363;
+                transition: 1s;
+                user-select: none;
+                box-shadow: 0px 0px 7px black;
+            }
+
+            #color-container {
+                position: relative;
+                display: flex;
+                justify-content: center;
+            }
+
+            .ccard {
+                background-color: #000000;
+                position: relative;
+                width: 50px;
+                height: 40px;
+                margin-right: 5px;
+                margin-left: 5px;
+                transition: 0.50s;
+                border: 1px solid #636363;
+            }
+            #c1 {
+                 box-shadow: 0px 0px 5px red;
+            }
+            #c1:hover {
+                box-shadow: 0px 0px 10px red;
+            }
+            #c2 {
+                box-shadow: 0px 0px 5px blue;
+            }
+            #c2:hover {
+                box-shadow: 0px 0px 10px blue;
+            }
+
+            h2:hover {
+                text-shadow: 0px 0px 3px whitesmoke;
+            }
+
+            .cont {
+                margin: auto;
+                display: flex;
+                justify-content: center;
+                perspective: 1500px;
+            }
+
+            #tabul {
+                width: 450px;
+                height: 450px;
+
+                display: flex;
+                flex-wrap: wrap;
+
+                transform: rotateX(70deg) rotateZ(65deg);
+                transition: 0.35s;
+            }
+
+            .card {
+                position: relative;
+                background-image: linear-gradient(rgba(52, 146, 255, 0.3), rgba(255, 0, 242, 0.3));
+                margin: 10px;
+                width: 130px;
+                height: 130px;
+
+                box-shadow: 7px 7px 7px rgba(0, 0, 0, 0.863);
+                transition: 0.35s;
+            }
+
+            .card:hover {
+                margin-left: -20px;
+                margin-right: 40px;
+                margin-top: -5px;
+                /*background-image: linear-gradient(rgb(52, 147, 255), rgb(255, 0, 242));*/
+                box-shadow: 20px 20px 15px rgba(0, 0, 0, 0.705);
+            }
+            #reload-cont {
+                display: flex;
+                justify-content: center;
+                margin-top: -30px;
+                text-align: center;
+                color: white;
+                font-family: sans-serif;
+                transition: 0.25s;
+            }
+            #reload-cont h3 {
+                text-align: center;
+                position: relative;
+                width: 100px;
+                border: 1px solid #636363;
+                border-radius: 5px;
+                background-color: black;
+                box-shadow: 0px 0px 7px black;
+                user-select: none;
+
+            }
+            #reload-cont:hover {
+                text-shadow: 0px 0px 3px rgba(255, 255, 255, 0.7);
+            }
+            #sideTerm {
+                position: fixed;
+                width: 250px;
+                height: 300px;
+                margin-top: -340px;
+                background-color: black;
+                border-radius: 5px;
+                box-shadow: 0px 0px 7px black;
+                border: 1px solid #636363;
+                overflow: auto;
+                color: white;
+                font-family: sans-serif;
+                display: flex;
+                flex-direction: column;
+                transition: 1s;
+            }
+            #sideTerm h4 {
+                margin-top: 5px;
+                margin-left: 5px;
+            }
+            #sideTerm span {
+                margin-left: 5px;
+                width: 230px;
+            }
+            #sideTermInput {
+                position: fixed;
+                margin-top: -35px;
+            }
+            #sideInput {
+                margin-left: 25px;
+                background-color: black;
+                height: 25px;
+                padding-left: 10px;
+                color: whitesmoke;
+                font-family: sans-serif;
+                border: 1px solid #636363;
+                border-radius: 5px;
+                box-shadow: 0px 0px 7px black;
+            }
+        </style>
+    </head>
+    
+    
+    <!-- BODY -->
+    <body>
+        <div class="ccolor">
+            <h2 id="bannercolor">Your Color</h2>
+            <div id="color-container">
+                <div id="c1"  class="ccard"></div>
+                <div id="c2"  class="ccard"></div>
+            </div>
+        </div>
+
+        <div class="cont">
+
+            <div id="tabul">
+                <div id="d0" class="card"></div>
+                <div id="d1" class="card"></div>
+                <div id="d2" class="card"></div>
+
+                <div id="d3" class="card"></div>
+                <div id="d4" class="card"></div>
+                <div id="d5" class="card"></div>
+
+                <div id="d6" class="card"></div>
+                <div id="d7" class="card"></div>
+                <div id="d8" class="card"></div>
+            </div>
+        </div>
+        <div id="sideTerm">
+            <h4 onclick="sideTHide()" id="sideTermHide">Hide - Debugging console</h4>
+        </div>
+        <div id="sideTermInput">
+            <input id="sideInput" type="text" placeholder="Message">
+        </div>
+        <div id="reload-cont">
+            <h3 id="reload">Reload</h3>
+        </div>
+        
+        
+        <!-- SCRIPT -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+        <script>
+            /* Global variables */
+            var mycolor;
+            var arr = ["d0","d1","d2","d3","d4","d5","d6","d7","d8"];
+            var lastColor; // last color who play.
+            var zCount = 0;
+            var isHide = "show";
+            /*------------------*/
+
+            // Hide Side debugging console
+             function sideTHide() {
+                const sideT = document.getElementById("sideTerm");
+                const tit = document.getElementById("sideTermHide");
+                if (isHide != "hide") {
+                    sideT.style.width = "60px";
+                    sideT.style.height = "35px";
+                    isHide = "hide";
+                    tit.innerText = "show"
+                } else {
+                    sideT.style.width = "250px";
+                    sideT.style.height = "300px";
+                    isHide = "show";
+                    tit.innerText = "Hide - Debugging console";
+                }
+             }
+
+            // Check if point
+            function checkPont() {
+                // Bunner
+                const bn = document.getElementById("bannercolor");
+              if (arr[0] == "blue" && arr[1] == "blue" && arr[2] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              if (arr[3] == "blue" && arr[4] == "blue" && arr[5] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              if (arr[6] == "blue" && arr[7] == "blue" && arr[8] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              //-------------------------------------------------------------
+              if (arr[0] == "blue" && arr[3] == "blue" && arr[6] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              if (arr[1] == "blue" && arr[4] == "blue" && arr[7] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              if (arr[2] == "blue" && arr[5] == "blue" && arr[8] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              //-------------------------------------------------------------
+              if (arr[0] == "blue" && arr[4] == "blue" && arr[8] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              if (arr[2] == "blue" && arr[4] == "blue" && arr[6] == "blue") {
+                bn.innerText = "Blue won! - Click on reload.";
+              }
+              //-------------------------------------------------------------
+              //-------------------------------------------------------------
+              if (arr[0] == "red" && arr[1] == "red" && arr[2] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              if (arr[3] == "red" && arr[4] == "red" && arr[5] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              if (arr[6] == "red" && arr[7] == "red" && arr[8] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              //-------------------------------------------------------------
+              if (arr[0] == "red" && arr[3] == "red" && arr[6] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              if (arr[1] == "red" && arr[4] == "red" && arr[7] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              if (arr[2] == "red" && arr[5] == "red" && arr[8] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              //-------------------------------------------------------------
+              if (arr[0] == "red" && arr[4] == "red" && arr[8] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+              if (arr[2] == "red" && arr[4] == "red" && arr[6] == "red") {
+                bn.innerText = "Red won! - Click on reload.";
+              }
+            }
+
+
+            
+            window.onload = function () {
+                const socket = io('http://127.0.0.1:5000');
+                //const socket = io('http://0fe461f3200f.ngrok.io');
+                socket.on('connect',() => {
+                            socket.send('User Connected!')
+                })
+                // Broadcast configuration of the board.
+                socket.on('getConf', (conf) => {
+                    adding(conf);
+                })
+
+                function adding(conf) {
+                if (lastColor != conf.color) {
+                    if(conf.id == "d0") {
+                        arr[0] = conf.color;
+                    } else if (conf.id == "d1") {
+                        arr[1] = conf.color;
+                    } else if (conf.id == "d2") {
+                        arr[2] = conf.color;
+                    } else if (conf.id == "d3") {
+                        arr[3] = conf.color;
+                    } else if (conf.id == "d4") {
+                        arr[4] = conf.color;
+                    } else if (conf.id == "d5") {
+                        arr[5] = conf.color;
+                    } else if (conf.id == "d6") {
+                        arr[6] = conf.color;
+                    } else if (conf.id == "d7") {
+                        arr[7] = conf.color;
+                    } else if (conf.id == "d8") {
+                        arr[8] = conf.color;
+                    } else {
+
+                    }
+
+                    // Logging play on console.
+                    const span =  document.createElement('span');
+                    const st = document.getElementById("sideTerm");
+                    span.innerHTML = `<strong>${conf.color}:</strong> ${conf.id}`;
+                    st.append(span);
+
+                    // Turning color
+                    const x = document.getElementById(conf.id);
+                    x.style.background = conf.color;
+                    lastColor = conf.color;
+                    checkPont();
+                    zCount++;
+                    if (zCount >= 9) {
+                        document.getElementById("bannercolor").innerText = "No one won! Click on reload.";
+                        // Loging "no one won!" on the console
+                        const span2 =  document.createElement('span');
+                        span2.innerHTML = `<strong>No one won!</strong>`;
+                        st.append(span2);
+                    }
+                } else {
+                    // Error message on console "you cant play again".
+                    sendLog("Can not play again!")
+                }
+            }
+                 socket.on('rcvLog', (msg) => {
+                     const span =  document.createElement('span');
+                     const st = document.getElementById("sideTerm");
+                     span.innerHTML = "<strong>"+msg.color+":</strong> "+msg.msg;
+                     st.append(span);
+                 })
+                function sendLog(msg) {
+                    socket.emit('sendLog', {color:mycolor,msg: msg})
+                }
+
+
+
+                document.getElementById("reload").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    socket.emit("reload",{reload:"1"});
+
+                })
+                socket.on('getReload', (info) => {
+                    if(info.reload == "1") {
+                        location.reload();
+
+                    }
+                })
+
+                document.getElementById("d0").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd0', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!");
+                    }
+
+                })
+
+                document.getElementById("d1").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd1', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d2").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd2', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d3").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd3', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d4").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd4', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d5").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd5', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d6").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd6', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d7").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd7', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+                document.getElementById("d8").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    if(mycolor == "blue" || mycolor == "red") {
+                        socket.emit('jogada', {id: 'd8', color: mycolor})
+                    } else {
+                        sendLog("Cant play without a color!");
+                        alert("You need to choose a color!")
+                    }
+                })
+
+
+                // Set own color.
+                document.getElementById("c1").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    mycolor = "red";
+                    sendLog("was chosen!");
+                    const bc = document.getElementById("bannercolor");
+                    bc.style.color = mycolor;
+                })
+                document.getElementById("c2").addEventListener("click", function (event) {
+                    event.preventDefault();
+                    mycolor = "blue";
+                    sendLog("was chosen!");
+                    const bc = document.getElementById("bannercolor");
+                    bc.style.color = mycolor;
+                })
+
+
+                const input = document.getElementById("sideInput");
+                input.addEventListener("keydown", function (event) {
+                    if (event.keyCode === 13) {
+                        sendLog(input.value);
+                        input.value = "";
+                    }
+                })
+            }
+        </script>
+    </body>
+</html>
